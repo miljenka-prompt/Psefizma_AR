@@ -12,6 +12,7 @@ type DioramaProps = {
   stage: number;
   viewpoint: "diorama" | "inside";
   active?: boolean;
+  onArStop?: () => void;
 };
 
 type MotionKind = "idle" | "walk" | "talk" | "vote" | "measure" | "carry";
@@ -1133,7 +1134,7 @@ function buildDiorama(): { root: THREE.Group; handles: SceneHandles } {
   };
 }
 
-export function Diorama({ stage, viewpoint, active = true }: DioramaProps) {
+export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   const viewpointRef = useRef(viewpoint);
@@ -1371,6 +1372,7 @@ export function Diorama({ stage, viewpoint, active = true }: DioramaProps) {
         arButton.disabled = false;
         arButton.textContent = "START AR";
       }
+      onArStop?.();
     };
 
     const startCameraFallback = async () => {
@@ -1503,6 +1505,7 @@ export function Diorama({ stage, viewpoint, active = true }: DioramaProps) {
         arButton.disabled = false;
         arButton.textContent = "START AR";
       }
+      if (!disposed) onArStop?.();
     });
 
     const resize = () => {
@@ -1731,7 +1734,7 @@ export function Diorama({ stage, viewpoint, active = true }: DioramaProps) {
         }
       });
     };
-  }, [active]);
+  }, [active, onArStop]);
 
   return (
     <div ref={mountRef} className={active ? "diorama-mount" : "diorama-mount is-suspended"}>
