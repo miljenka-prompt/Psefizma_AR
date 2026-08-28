@@ -28,3 +28,16 @@ test("uses the repository path in the exported page", async () => {
     assert.match(html, new RegExp(`${expectedBasePath.replace("/", "\\/")}\\/`));
   }
 });
+
+test("stops ambient audio when AR or the page exits", async () => {
+  const [experience, diorama] = await Promise.all([
+    readFile(new URL("../app/experience.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/diorama.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(experience, /window\.addEventListener\("pagehide", stopPageAudio\)/);
+  assert.match(experience, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+  assert.match(experience, /onArStop=\{stopSound\}/);
+  assert.match(diorama, /if \(!disposed\) onArStop\?\.\(\)/);
+  assert.equal(diorama.match(/onArStop\?\.\(\)/g)?.length, 2);
+});
