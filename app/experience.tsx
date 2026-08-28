@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -135,11 +135,17 @@ export default function Home() {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [viewpoint, setViewpoint] = useState<"diorama" | "inside">("diorama");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const stopAmbientRef = useRef<() => void>(() => undefined);
   const scene = scenes[sceneIndex];
   const progress = useMemo(
     () => ((sceneIndex + 1) / scenes.length) * 100,
     [sceneIndex],
   );
+
+  const stopSound = useCallback(() => {
+    stopAmbientRef.current();
+    setSoundEnabled(false);
+  }, []);
 
   useEffect(() => {
     if (!soundEnabled || viewpoint === "inside") return;
@@ -193,19 +199,54 @@ export default function Home() {
       return voice;
     });
 
-    context.resume();
+    void context.resume();
     sea.start();
     wind.start();
     wave.start();
 
-    return () => {
+    let stopped = false;
+    const stopAmbient = () => {
+      if (stopped) return;
+      stopped = true;
       sea.stop();
       wind.stop();
       wave.stop();
       voices.forEach((voice) => voice.stop());
-      context.close();
+      void context.close();
+    };
+
+    stopAmbientRef.current = stopAmbient;
+
+    return () => {
+      if (stopAmbientRef.current === stopAmbient) {
+        stopAmbientRef.current = () => undefined;
+      }
+      stopAmbient();
     };
   }, [soundEnabled, viewpoint]);
+
+  useEffect(() => {
+    const stopPageAudio = () => {
+      stopAmbientRef.current();
+      document.querySelectorAll<HTMLAudioElement>("audio").forEach((audio) => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      setSoundEnabled(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") stopPageAudio();
+    };
+
+    window.addEventListener("pagehide", stopPageAudio);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", stopPageAudio);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("chronovizor-active", viewpoint === "inside");
@@ -277,14 +318,19 @@ export default function Home() {
 
       <section className="experience-grid" aria-label="AR narativ">
         <div className="visual-stage">
-          <Diorama stage={sceneIndex} viewpoint={viewpoint} active={viewpoint === "diorama"} />
+          <Diorama
+            stage={sceneIndex}
+            viewpoint={viewpoint}
+            active={viewpoint === "diorama"}
+            onArStop={stopSound}
+          />
           {viewpoint === "inside" && (
             <Chronovizor stage={sceneIndex} soundEnabled={soundEnabled} />
           )}
 
           <div className="visual-caption">
             <span className="live-dot" aria-hidden="true" />
-            ŽIVA REKONSTRUKCIJA · V0.5.3
+            ŽIVA REKONSTRUKCIJA · V0.5.4
           </div>
 
           <div className="place-context">
