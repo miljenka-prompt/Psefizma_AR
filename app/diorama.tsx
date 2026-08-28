@@ -793,16 +793,23 @@ function createMediterraneanGround() {
 
 function createInscriptionTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = 640;
-  canvas.height = 1040;
+  canvas.width = 768;
+  canvas.height = 1184;
   const context = canvas.getContext("2d");
   if (!context) return null;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "rgba(58, 31, 24, 0.94)";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.font = '600 27px "Arial Unicode MS", "Noto Sans", Arial, sans-serif';
-  const lines = [
+
+  const drawCarvedText = (text: string, x: number, y: number, maxWidth: number) => {
+    context.fillStyle = "rgba(224, 176, 131, 0.34)";
+    context.fillText(text, x + 1.2, y + 1.4, maxWidth);
+    context.fillStyle = "rgba(55, 28, 22, 0.94)";
+    context.fillText(text, x, y, maxWidth);
+  };
+
+  context.font = '600 25px "Arial Unicode MS", "Noto Sans", Arial, sans-serif';
+  const decreeLines = [
     "ΑΓΑΘΑΙ ΤΥΧΑΙ ΕΦ ΙΕΡΟΜΝΑΜΟΝΟΣ ΠΡΑΞΙΔΑΜΟΥ",
     "ΜΑΧΑΝΕΟΣ ΣΥΝΘΗΚΑ ΟΙΚΙΣΤΑΝ ΙΣΣΑΙΩΝ",
     "ΚΑΙ ΠΥΛΛΟΥ ΚΑΙ ΤΟΥ ΥΟΥ ΔΑΖΟΥ ΤΑΔΕ",
@@ -812,9 +819,85 @@ function createInscriptionTexture() {
     "ΤΑΝ ΠΟΛΙΝ ΤΑΣ ΠΟΛΙΟΣ ΟΙΚΟΠΕΔΟΝ ΕΝ ΕΚΑΣΤΟΝ",
     "ΤΑΣ ΤΕΤΕΙΧΙΣΜΕΝΑΣ ΕΞΑΙΡΕΤΟΝ ΣΥΝ ΤΩΙ ΜΕΡΕΙ",
   ];
-  lines.forEach((line, index) => {
-    context.fillText(line, canvas.width / 2, 150 + index * 102, 560);
+  decreeLines.forEach((line, index) => {
+    drawCarvedText(line, canvas.width / 2, 80 + index * 59, 700);
   });
+
+  context.strokeStyle = "rgba(67, 35, 26, 0.42)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(54, 566);
+  context.lineTo(canvas.width - 54, 566);
+  context.stroke();
+
+  // The lower field follows the attested three-phyle layout. At AR scale these
+  // names function as carved surface detail; the readable decree remains in the
+  // Chronovizor close-up. Greek forms follow PHI Brunšmid, Inschriften 2-14.
+  const phyleColumns = [
+    {
+      heading: "ΔΥΜΑΝΕΣ",
+      names: [
+        "ΑΡΧΕΛΑΟΣ ΜΕΣΟΔΑΜΟΥ",
+        "ΔΑΜΑΤΡΙΟΣ ΑΡΙΣΤΑΡΧΟΥ",
+        "ΔΙΟΝΥΣΙΟΣ ΔΕΙΝΑΡΧΟΥ",
+        "ΦΑΝΑΙΟΣ ΖΩΙΛΟΥ",
+        "ΘΕΟΤΙΜΟΣ ΦΙΝΤΩΝΟΣ",
+        "ΑΝΤΑΛΛΟΣ ΑΡΙΣΤΑΡΧΟΥ",
+        "ΕΥΚΛΗΣ ΣΩΣΙΟΣ",
+        "ΜΗΤΡΙΚΩΝ ΑΡΙΣΤΗΝΟΣ",
+        "ΝΙΚΑΝΔΡΟΣ ΔΙΟΝΥΣΙΟΥ",
+        "ΟΡΘΩΝ ΚΛΕΑΡΧΟΥ",
+        "ΕΥΞΕΝΟΣ ΦΙΛΩΝΟΣ",
+        "ΗΡΑΚΛΕΙΔΑΣ ΔΙΟΝΥΣΙΟΥ",
+      ],
+    },
+    {
+      heading: "ΥΛΛΕΙΣ",
+      names: [
+        "ΗΡΑΚΛΕΙΔΑΣ ΘΕΟΤΙΜΟΥ",
+        "ΑΠΟΛΛΟΔΩΡΟΣ ΚΟΘΩΝΟΣ",
+        "ΑΡΙΣΤΑΡΧΟΣ ΦΙΛΟΚΡΑΤΕΟΣ",
+        "ΚΑΛΛΙΜΑΧΟΣ ΑΡΙΣΤΗΝΟΣ",
+        "ΔΙΟΝΥΣΙΟΣ ΑΡΙΣΤΗΝΟΣ",
+        "ΝΙΚΑΡΧΟΣ",
+        "ΑΡΙΣΤΩΝ ΑΡΙΣΤΟΚΛΕΟΣ",
+        "ΞΕΝΟΚΡΑΤΗΣ ΑΙΣΧΡΙΩΝΟΣ",
+        "ΠΡΩΤΑΓΟΡΑΣ ΦΙΛΩΝΟΣ",
+        "ΠΡΩΤΑΡΧΟΣ ΖΩΙΛΟΥ",
+        "ΚΛΕΟΔΙΚΟΣ ΜΝΑΣΤΗΡΟΣ",
+        "ΘΡΑΣΥΜΑΧΟΣ ΕΥΑΡΧΟΥ",
+      ],
+    },
+    {
+      heading: "ΠΑΜΦΥΛΟΙ",
+      names: [
+        "ΟΝΑΣΙΜΟΣ ΚΕΦΑΛΟΥ",
+        "ΒΟΥΛΑΓΟΡΑΣ ΦΙΛΕΑ",
+        "ΣΑΛΛΑΣ ΦΙΛΩΝΟΣ",
+        "ΑΙΣΧΙΝΑΣ ΣΑΛΛΑ",
+        "ΠΑΝΘΕΙΔΑΣ ΗΡΑΚΛΕΙΔΑ",
+        "ΚΑΛΛΙΜΑΧΙΔΑΣ ΟΝΑΣΙΜΟΥ",
+        "ΑΝΤΙΠΑΤΡΟΣ ΣΑΛΛΑ",
+        "ΟΡΘΩΝ ΦΙΛΙΑΡΧΟΥ",
+        "ΛΥΣΑΝΙΑΣ ΞΕΝΟΤΙΜΟΥ",
+        "ΣΩΣΑΝΔΡΟΣ ΜΙΚΥΛΟΥ",
+        "ΣΩΣΙΜΑΧΟΣ ΒΟΥΛΑΓΟΡΑ",
+        "ΝΙΚΑΝΩΡ ΝΙΚΩΝΟΣ",
+      ],
+    },
+  ] as const;
+
+  const columnWidth = 226;
+  phyleColumns.forEach((column, columnIndex) => {
+    const x = 45 + columnWidth / 2 + columnIndex * columnWidth;
+    context.font = '700 22px "Arial Unicode MS", "Noto Sans", Arial, sans-serif';
+    drawCarvedText(column.heading, x, 610, columnWidth - 18);
+    context.font = '600 14px "Arial Unicode MS", "Noto Sans", Arial, sans-serif';
+    column.names.forEach((name, rowIndex) => {
+      drawCarvedText(name, x, 654 + rowIndex * 42, columnWidth - 16);
+    });
+  });
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
@@ -827,66 +910,72 @@ function createStele() {
   pivot.position.set(0.55, 0.08, 0.42);
 
   const stele = new THREE.Group();
-  const stone = stoneMaterial(0xa76b4e, 0.98);
+  stele.userData.archaeologicalForm = "profiled-flat-head";
+  const stone = stoneMaterial(0x98654e, 0.98);
   const bodyShape = new THREE.Shape();
-  bodyShape.moveTo(-0.53, 0);
-  bodyShape.lineTo(-0.57, 0.48);
-  bodyShape.lineTo(-0.54, 1.92);
-  bodyShape.lineTo(0.5, 1.9);
-  bodyShape.lineTo(0.56, 0.42);
-  bodyShape.lineTo(0.52, 0);
+  bodyShape.moveTo(-0.36, 0.14);
+  bodyShape.lineTo(-0.37, 0.47);
+  bodyShape.lineTo(-0.36, 0.9);
+  bodyShape.lineTo(0.36, 0.9);
+  bodyShape.lineTo(0.37, 0.47);
+  bodyShape.lineTo(0.36, 0.14);
   bodyShape.closePath();
   const body = new THREE.Mesh(
     new THREE.ExtrudeGeometry(bodyShape, {
-      depth: 0.2,
+      depth: 0.13,
       bevelEnabled: true,
-      bevelSize: 0.018,
-      bevelThickness: 0.018,
+      bevelSize: 0.009,
+      bevelThickness: 0.009,
       bevelSegments: 1,
     }),
     stone,
   );
-  body.position.z = -0.1;
+  body.position.z = -0.065;
   body.castShadow = true;
   body.receiveShadow = true;
   stele.add(body);
 
-  const pedimentShape = new THREE.Shape();
-  pedimentShape.moveTo(-0.55, 0);
-  pedimentShape.lineTo(-0.4, 0.13);
-  pedimentShape.lineTo(0, 0.35);
-  pedimentShape.lineTo(0.41, 0.13);
-  pedimentShape.lineTo(0.54, 0);
-  pedimentShape.closePath();
-  const pediment = new THREE.Mesh(
-    new THREE.ExtrudeGeometry(pedimentShape, { depth: 0.2, bevelEnabled: false }),
-    stone,
-  );
-  pediment.position.set(0, 1.9, -0.1);
-  pediment.castShadow = true;
-  stele.add(pediment);
+  const addMoulding = (
+    width: number,
+    height: number,
+    depth: number,
+    y: number,
+    color: number,
+  ) => {
+    const moulding = new THREE.Mesh(
+      new THREE.BoxGeometry(width, height, depth),
+      stoneMaterial(color, 0.98),
+    );
+    moulding.position.set(0, y, 0);
+    moulding.castShadow = true;
+    moulding.receiveShadow = true;
+    stele.add(moulding);
+  };
+
+  // Simple profiled cornice on a flat head: four shallow horizontal bands,
+  // matching the museum reconstruction without inventing a temple pediment.
+  addMoulding(0.73, 0.04, 0.15, 0.91, 0x8d5d49);
+  addMoulding(0.78, 0.045, 0.17, 0.948, 0x9d6a52);
+  addMoulding(0.84, 0.045, 0.19, 0.988, 0x895b48);
+  addMoulding(0.88, 0.07, 0.21, 1.045, 0xa06d54);
 
   const inscriptionTexture = createInscriptionTexture();
   if (inscriptionTexture) {
     const inscription = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.93, 1.58),
+      new THREE.PlaneGeometry(0.66, 0.7),
       new THREE.MeshBasicMaterial({
         map: inscriptionTexture,
         transparent: true,
         depthWrite: false,
       }),
     );
-    inscription.position.set(0, 0.99, 0.125);
+    inscription.position.set(0, 0.525, 0.075);
     stele.add(inscription);
   }
 
-  const base = new THREE.Mesh(
-    new THREE.BoxGeometry(1.25, 0.16, 0.42),
-    stoneMaterial(0x80634b, 1),
-  );
-  base.position.set(0, -0.08, 0);
-  base.castShadow = true;
-  stele.add(base);
+  addMoulding(0.84, 0.06, 0.23, 0.03, 0x805443);
+  addMoulding(0.78, 0.055, 0.2, 0.088, 0x91604a);
+  addMoulding(0.72, 0.04, 0.17, 0.135, 0x9e6c52);
 
   pivot.add(stele);
   pivot.rotation.x = -Math.PI / 2;
@@ -1628,7 +1717,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       const steleTargetX = currentStage === 3 ? -1.72 : 0.55;
       const steleTargetY = psephismaVisible ? 0.08 : 0.045;
       const steleTargetZ = currentStage === 3 ? 2.12 : 0.42;
-      const steleScale = currentStage === 3 ? 0.76 : currentStage >= 5 ? 0.82 : 1;
+      const steleScale = currentStage === 3 ? 0.9 : 1;
       handles.stelePivot.position.x += (steleTargetX - handles.stelePivot.position.x) * 0.055;
       handles.stelePivot.position.y += (steleTargetY - handles.stelePivot.position.y) * 0.055;
       handles.stelePivot.position.z += (steleTargetZ - handles.stelePivot.position.z) * 0.055;

@@ -41,3 +41,11 @@ test("stops ambient audio when AR or the page exits", async () => {
   assert.match(diorama, /if \(!disposed\) onArStop\?\.\(\)/);
   assert.equal(diorama.match(/onArStop\?\.\(\)/g)?.length, 2);
 });
+
+test("uses the archaeologically supported flat profiled stele", async () => {
+  const diorama = await readFile(new URL("../app/diorama.tsx", import.meta.url), "utf8");
+
+  assert.match(diorama, /profiled-flat-head/);
+  assert.match(diorama, /Simple profiled cornice on a flat head/);
+  assert.doesNotMatch(diorama, /pedimentShape|new THREE\.ConeGeometry\([^\n]*pediment/);
+});
