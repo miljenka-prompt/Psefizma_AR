@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,132 +14,30 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher, useI18n } from "@/components/i18n-provider";
 import { Progress } from "@/components/ui/progress";
 import { Diorama } from "@/app/diorama";
 import { Chronovizor } from "@/app/chronovizor";
 
-type EvidenceKind =
-  | "inscription"
-  | "archaeology"
-  | "interpretation"
-  | "reconstruction";
-
-type Scene = {
-  eyebrow: string;
-  title: string;
-  body: string;
-  evidence: Array<{ kind: EvidenceKind; text: string }>;
-};
-
-const scenes: Scene[] = [
-  {
-    eyebrow: "I · KORKYRA MELAINA",
-    title: "Kolonija čije ime nismo sačuvali",
-    body: "Doseljenici iz Isse stižu na istočni kraj Korčule. Psefizma je gotovo jedini glas grada koji će nestati iz krajolika, ali ne i iz kamena.",
-    evidence: [
-      {
-        kind: "inscription",
-        text: "Natpis veže osnivače uz Issu; ime nove naseobine nije sačuvano.",
-      },
-      {
-        kind: "interpretation",
-        text: "Datacija nije čvrsta; najčešće se smješta u 3. stoljeće pr. Kr.",
-      },
-    ],
-  },
-  {
-    eyebrow: "II · DOGOVOR",
-    title: "Issa, Pyllos i Dazos",
-    body: "Prije kuća, zidina i parcela postoji politički dogovor. Uz isejske osnivače imenovani su Pyllos i njegov sin Dazos — ljudi s ilirskim imenima, ali nepoznatim položajem.",
-    evidence: [
-      {
-        kind: "inscription",
-        text: "Pyllos i njegov sin Dazos navedeni su uz isejske osnivače.",
-      },
-      {
-        kind: "interpretation",
-        text: "Njihova su imena ilirska; jesu li bili lokalni dinasti ostaje tumačenje.",
-      },
-    ],
-  },
-  {
-    eyebrow: "III · ODLUKA",
-    title: "Demos izglasava pravila",
-    body: "Odabrana skupina oblikuje tekst, a zajednica ga prihvaća glasanjem. Psefizma nije ukrasni natpis: ona određuje tko dobiva zemlju, pod kojim uvjetima i što slijedi ako se pravila prekrše.",
-    evidence: [
-      {
-        kind: "inscription",
-        text: "Sačuvana formula govori o sastavljačima i odluci demos-a.",
-      },
-      {
-        kind: "reconstruction",
-        text: "Mjesto sjednice, način glasanja i javno čitanje nisu sačuvani.",
-      },
-    ],
-  },
-  {
-    eyebrow: "IV · GRAD I ZEMLJA",
-    title: "Pravo zapisano u prostoru",
-    body: "Prvi kolonisti utvrđuju grad i dobivaju prednost pri izboru kućnih i obradivih čestica. Za one koji dolaze poslije propisani su drugi dijelovi. Zemlja postaje nacrt političke zajednice.",
-    evidence: [
-      {
-        kind: "inscription",
-        text: "Natpis razlikuje prve koloniste od kasnijih doseljenika i uređuje dodjelu čestica.",
-      },
-      {
-        kind: "reconstruction",
-        text: "Prikazana mreža parcela prostorni je model, a ne otkriven katastarski plan.",
-      },
-    ],
-  },
-  {
-    eyebrow: "V · TRI FILE",
-    title: "Grad dobiva imena",
-    body: "Dimani, Hili i Pamfili. Ispod pravila slijede stupci ljudi — ime uz ime, patronimik uz patronimik. Politička odluka postaje popis stvarnih kolonista.",
-    evidence: [
-      {
-        kind: "inscription",
-        text: "Kolonisti su raspoređeni u tri dorske file: Dimane, Hile i Pamfile.",
-      },
-      {
-        kind: "archaeology",
-        text: "Sačuvano je približno 180 imena; izvorno ih je možda bilo oko 300.",
-      },
-    ],
-  },
-  {
-    eyebrow: "VI · JAVNI KAMEN",
-    title: "Psefizma se uspravlja",
-    body: "Stela se podiže kao javna memorija osnutka, zemlje i pripadnosti. Ovdje kronovizor prelazi iz izvora u transparentnu rekonstrukciju — pokazujemo mogući trenutak, ne tvrdimo da smo ga pronašli.",
-    evidence: [
-      {
-        kind: "archaeology",
-        text: "Ulomci su pronađeni u antičkoj cisterni; izvorno mjesto stele nije poznato.",
-      },
-      {
-        kind: "reconstruction",
-        text: "Podizanje, okupljeni ljudi i javno čitanje prikazani su kao hipoteza.",
-      },
-    ],
-  },
-];
-
-const evidenceLabels: Record<EvidenceKind, string> = {
-  inscription: "NATPIS",
-  archaeology: "ARHEOLOGIJA",
-  interpretation: "TUMAČENJE",
-  reconstruction: "REKONSTRUKCIJA",
-};
-
 export default function Home() {
+  const { copy } = useI18n();
+  const { experience } = copy;
+  const scenes = experience.scenes;
+  const evidenceLabels = experience.evidenceLabels;
   const [sceneIndex, setSceneIndex] = useState(0);
   const [viewpoint, setViewpoint] = useState<"diorama" | "inside">("diorama");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const stopAmbientRef = useRef<() => void>(() => undefined);
   const scene = scenes[sceneIndex];
   const progress = useMemo(
     () => ((sceneIndex + 1) / scenes.length) * 100,
-    [sceneIndex],
+    [sceneIndex, scenes.length],
   );
+
+  const stopSound = useCallback(() => {
+    stopAmbientRef.current();
+    setSoundEnabled(false);
+  }, []);
 
   useEffect(() => {
     if (!soundEnabled || viewpoint === "inside") return;
@@ -193,19 +91,54 @@ export default function Home() {
       return voice;
     });
 
-    context.resume();
+    void context.resume();
     sea.start();
     wind.start();
     wave.start();
 
-    return () => {
+    let stopped = false;
+    const stopAmbient = () => {
+      if (stopped) return;
+      stopped = true;
       sea.stop();
       wind.stop();
       wave.stop();
       voices.forEach((voice) => voice.stop());
-      context.close();
+      void context.close();
+    };
+
+    stopAmbientRef.current = stopAmbient;
+
+    return () => {
+      if (stopAmbientRef.current === stopAmbient) {
+        stopAmbientRef.current = () => undefined;
+      }
+      stopAmbient();
     };
   }, [soundEnabled, viewpoint]);
+
+  useEffect(() => {
+    const stopPageAudio = () => {
+      stopAmbientRef.current();
+      document.querySelectorAll<HTMLAudioElement>("audio").forEach((audio) => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      setSoundEnabled(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") stopPageAudio();
+    };
+
+    window.addEventListener("pagehide", stopPageAudio);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", stopPageAudio);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("chronovizor-active", viewpoint === "inside");
@@ -250,51 +183,61 @@ export default function Home() {
     <main className="experience-shell">
       <header className="site-header">
         <div>
-          <p className="project-label">QUANTUMHIPPIE · RADNA REKONSTRUKCIJA</p>
-          <h1>Lumbardska psefizma</h1>
+          <p className="project-label">{experience.projectLabel}</p>
+          <h1>{experience.title}</h1>
         </div>
         <div className="header-actions">
+          <LanguageSwitcher />
           <Button
             variant="outline"
             className="header-status"
             onClick={toggleViewpoint}
-            aria-label={viewpoint === "diorama" ? "Uđi u prizor" : "Vrati se na dioramu"}
+            aria-label={
+              viewpoint === "diorama" ? experience.enterScene : experience.returnToDiorama
+            }
           >
             {viewpoint === "diorama" ? <Footprints /> : <Expand />}
-            <span>{viewpoint === "diorama" ? "Uđi u prizor" : "Vrati dioramu"}</span>
+            <span>
+              {viewpoint === "diorama" ? experience.enterScene : experience.returnDiorama}
+            </span>
           </Button>
           <Button
             variant="outline"
             size="icon"
             className="sound-toggle"
             onClick={() => setSoundEnabled((current) => !current)}
-            aria-label={soundEnabled ? "Isključi ambijentalni zvuk" : "Uključi ambijentalni zvuk"}
+            aria-label={soundEnabled ? experience.soundOff : experience.soundOn}
           >
             {soundEnabled ? <Volume2 /> : <VolumeX />}
           </Button>
         </div>
       </header>
 
-      <section className="experience-grid" aria-label="AR narativ">
+      <section className="experience-grid" aria-label={experience.narrativeAria}>
         <div className="visual-stage">
-          <Diorama stage={sceneIndex} viewpoint={viewpoint} active={viewpoint === "diorama"} />
+          <Diorama
+            stage={sceneIndex}
+            viewpoint={viewpoint}
+            active={viewpoint === "diorama"}
+            onArStop={stopSound}
+          />
           {viewpoint === "inside" && (
             <Chronovizor stage={sceneIndex} soundEnabled={soundEnabled} />
           )}
 
           <div className="visual-caption">
             <span className="live-dot" aria-hidden="true" />
-            ŽIVA REKONSTRUKCIJA · V0.5.3
+            {experience.liveReconstruction}
           </div>
 
           <div className="place-context">
             <MapPin aria-hidden="true" />
             <div>
-              <strong>Koludrt / bilo koja ravna podloga</strong>
+              <strong>{experience.placeTitle}</strong>
               <span>
                 {sceneIndex === 3
-                  ? "Uđi među mjernike: postolje nestaje, a kamera se spušta u visinu čovjeka."
-                  : "AR sidrenje koristi površinu koju kamera pronađe."}
+                  ? experience.placeSurveyors
+                  : experience.placeDefault}
               </span>
             </div>
           </div>
@@ -306,7 +249,10 @@ export default function Home() {
               <span>{String(sceneIndex + 1).padStart(2, "0")}</span>
               <span>{String(scenes.length).padStart(2, "0")}</span>
             </div>
-            <Progress value={progress} aria-label={`Prizor ${sceneIndex + 1} od ${scenes.length}`} />
+            <Progress
+              value={progress}
+              aria-label={experience.sceneProgress(sceneIndex + 1, scenes.length)}
+            />
           </div>
 
           <div className="story-copy">
@@ -324,14 +270,14 @@ export default function Home() {
             ))}
           </div>
 
-          <nav className="story-controls" aria-label="Kretanje kroz prizore">
+          <nav className="story-controls" aria-label={experience.navigationAria}>
             <Button
               variant="outline"
               size="lg"
               className="control-button control-back"
               onClick={goBack}
               disabled={sceneIndex === 0}
-              aria-label="Prethodni prizor"
+              aria-label={experience.previousScene}
             >
               <ArrowLeft />
             </Button>
@@ -339,15 +285,15 @@ export default function Home() {
             <Button size="lg" className="control-button control-next" onClick={goForward}>
               {sceneIndex < scenes.length - 1 ? (
                 <>
-                  Sljedeći trag <ArrowRight />
+                  {experience.nextTrace} <ArrowRight />
                 </>
               ) : viewpoint === "diorama" ? (
                 <>
-                  Uđi u podjelu zemlje <Footprints />
+                  {experience.enterLandDivision} <Footprints />
                 </>
               ) : (
                 <>
-                  Vrati dioramu <Expand />
+                  {experience.returnDiorama} <Expand />
                 </>
               )}
             </Button>
@@ -357,7 +303,7 @@ export default function Home() {
               size="icon-lg"
               className="control-button control-reset"
               onClick={restart}
-              aria-label="Počni ispočetka"
+              aria-label={experience.restart}
             >
               <RotateCcw />
             </Button>
@@ -365,48 +311,22 @@ export default function Home() {
 
           <details className="source-notes">
             <summary>
-              <Info aria-hidden="true" /> Izvori i granice rekonstrukcije
+              <Info aria-hidden="true" /> {experience.sources.summary}
             </summary>
-            <p>
-              Prvi sloj temelji se na opisu Arheološkog muzeja u Zagrebu, novom
-              čitanju ulomka iz 2021. i objavljenom prijevodu natpisa. Tijek
-              podizanja stele i izgled naselja ostaju radne hipoteze.
-            </p>
-            <p>
-              Rekonstruirano čitanje dorskoga grčkog teksta. Izgovor je povijesno
-              utemeljena aproksimacija, ne doslovna rekonstrukcija lokalnog govora.
-            </p>
+            <p>{experience.sources.basis}</p>
+            <p>{copy.pronunciationNote}</p>
             <div className="source-links">
-              <a
-                href="https://amz.hr/hr/virtualni-muzej/vodici-kroz-stalni-postav/vodic-kroz-stalni-postav-anticke-zbirke-arheoloskog-muzeja-u-zagrebu/grci-na-istocnoj-obali-jadrana/lumbardska-psefizma/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Arheološki muzej u Zagrebu
-              </a>
-              <a
-                href="https://www.researchgate.net/publication/366399086_A_NEW_FRAGMENT_OF_THE_GREEK_LAND_DIVISION_DECREE_FROM_LUMBARDA_ON_THE_ISLAND_OF_KORCULA"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Marohnić · Potrebica · Vuković, 2021.
-              </a>
-              <a href="https://www.attalus.org/docs/sig1/s141.html" target="_blank" rel="noreferrer">
-                Objavljeni tekst i prijevod
-              </a>
-              <a
-                href="https://quaternius.com/packs/universalbasecharacters.html"
-                target="_blank"
-                rel="noreferrer"
-              >
-                CC0 baza 3D likova · Quaternius
-              </a>
+              {experience.sources.links.map((link) => (
+                <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
+                  {link.label}
+                </a>
+              ))}
             </div>
           </details>
         </aside>
       </section>
 
-      <section className="immersive-toolbar" aria-label="Kontrole živog prizora">
+      <section className="immersive-toolbar" aria-label={experience.immersiveControlsAria}>
         <div className="immersive-copy" aria-live="polite">
           <span>
             {String(sceneIndex + 1).padStart(2, "0")} / {String(scenes.length).padStart(2, "0")} · {scene.eyebrow}
@@ -419,20 +339,20 @@ export default function Home() {
             size="icon"
             onClick={() => setSceneIndex((current) => Math.max(0, current - 1))}
             disabled={sceneIndex === 0}
-            aria-label="Prethodni prizor"
+            aria-label={experience.previousScene}
           >
             <ArrowLeft />
           </Button>
           <Button className="immersive-view" onClick={toggleViewpoint}>
             {viewpoint === "diorama" ? <Footprints /> : <Expand />}
-            <span>{viewpoint === "diorama" ? "Uđi" : "Izađi"}</span>
+            <span>{viewpoint === "diorama" ? experience.enter : experience.exit}</span>
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={() => setSceneIndex((current) => Math.min(scenes.length - 1, current + 1))}
             disabled={sceneIndex === scenes.length - 1}
-            aria-label="Sljedeći prizor"
+            aria-label={experience.nextScene}
           >
             <ArrowRight />
           </Button>
@@ -440,7 +360,7 @@ export default function Home() {
             variant="outline"
             size="icon"
             onClick={() => setSoundEnabled((current) => !current)}
-            aria-label={soundEnabled ? "Isključi ambijentalni zvuk" : "Uključi ambijentalni zvuk"}
+            aria-label={soundEnabled ? experience.soundOff : experience.soundOn}
           >
             {soundEnabled ? <Volume2 /> : <VolumeX />}
           </Button>

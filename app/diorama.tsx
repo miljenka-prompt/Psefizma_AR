@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
+import { useI18n } from "@/components/i18n-provider";
 import { siteAsset } from "@/lib/site-path";
 
 type DioramaProps = {
@@ -1224,6 +1225,8 @@ function buildDiorama(): { root: THREE.Group; handles: SceneHandles } {
 }
 
 export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaProps) {
+  const { copy } = useI18n();
+  const dioramaCopy = copy.diorama;
   const mountRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef(stage);
   const viewpointRef = useRef(viewpoint);
@@ -1261,7 +1264,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
     renderer.xr.enabled = true;
     renderer.domElement.setAttribute(
       "aria-label",
-      "Interaktivna živa rekonstrukcija antičke Lumbarde",
+      dioramaCopy.canvasAria,
     );
     mount.appendChild(renderer.domElement);
 
@@ -1459,7 +1462,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       resetSceneAfterCamera();
       if (arButton) {
         arButton.disabled = false;
-        arButton.textContent = "START AR";
+        arButton.textContent = dioramaCopy.startAr;
       }
       onArStop?.();
     };
@@ -1489,12 +1492,12 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       root.visible = true;
       controls.enabled = true;
       setGuidance(
-        "Živa kamera + 3D",
-        "Mijenjaj prizore donjim kontrolama. Ovaj rezervni prikaz nije prostorno usidren.",
+        dioramaCopy.cameraGuidanceTitle,
+        dioramaCopy.cameraGuidanceText,
       );
       if (arButton) {
         arButton.disabled = false;
-        arButton.textContent = "ZAUSTAVI KAMERU";
+        arButton.textContent = dioramaCopy.stopCamera;
       }
     };
 
@@ -1513,7 +1516,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       }
 
       arButton.disabled = true;
-      arButton.textContent = "POKREĆEM…";
+      arButton.textContent = dioramaCopy.starting;
 
       if (xrSupported && navigator.xr) {
         try {
@@ -1542,10 +1545,8 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
         cameraFeed?.pause();
         if (cameraFeed) cameraFeed.srcObject = null;
         arButton.disabled = false;
-        arButton.textContent = "POKUŠAJ PONOVNO";
-        showMessage(
-          "Kamera nije otvorena. U Chromeu otvori ⋮ → Postavke web-lokacije → Kamera → Dopusti, pa pokušaj ponovno.",
-        );
+        arButton.textContent = dioramaCopy.retry;
+        showMessage(dioramaCopy.cameraError);
       }
     };
 
@@ -1570,12 +1571,12 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       controls.enabled = false;
       document.body.classList.add("ar-active");
       setGuidance(
-        "Pronađi površinu",
-        "Polako pomiči mobitel. Kad se pojavi zlatni krug, dodirni ga.",
+        dioramaCopy.surfaceGuidanceTitle,
+        dioramaCopy.surfaceGuidanceText,
       );
       if (arButton) {
         arButton.disabled = false;
-        arButton.textContent = "STOP AR";
+        arButton.textContent = dioramaCopy.stopAr;
       }
     });
 
@@ -1592,7 +1593,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
       document.body.classList.remove("ar-active");
       if (arButton) {
         arButton.disabled = false;
-        arButton.textContent = "START AR";
+        arButton.textContent = dioramaCopy.startAr;
       }
       if (!disposed) onArStop?.();
     });
@@ -1823,7 +1824,7 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
         }
       });
     };
-  }, [active, onArStop]);
+  }, [active, dioramaCopy, onArStop]);
 
   return (
     <div ref={mountRef} className={active ? "diorama-mount" : "diorama-mount is-suspended"}>
@@ -1833,24 +1834,18 @@ export function Diorama({ stage, viewpoint, active = true, onArStop }: DioramaPr
           type="button"
           className="ar-launch-button"
           data-ar-button
-          aria-label="Pokreni prikaz u proširenoj stvarnosti"
+          aria-label={dioramaCopy.launchAria}
         >
-          START AR
+          {dioramaCopy.startAr}
         </button>
       </div>
       <p className="ar-message" data-ar-message role="alert" />
       <div className="ar-guidance" role="status">
-        <strong data-guidance-title>Pronađi površinu</strong>
-        <span data-guidance-text>
-          Polako pomiči mobitel. Kad se pojavi zlatni krug, dodirni ga.
-        </span>
+        <strong data-guidance-title>{dioramaCopy.surfaceGuidanceTitle}</strong>
+        <span data-guidance-text>{dioramaCopy.surfaceGuidanceText}</span>
       </div>
-      <p className="canvas-instruction">
-        Povuci za obilazak · približi prstima · AR traži ravnu površinu
-      </p>
-      <p className="webgl-fallback" role="status">
-        3D prikaz nije dostupan na ovom uređaju. Kronovizor i video ostaju dostupni.
-      </p>
+      <p className="canvas-instruction">{dioramaCopy.canvasInstruction}</p>
+      <p className="webgl-fallback" role="status">{dioramaCopy.webglFallback}</p>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n-provider";
 import {
   Dialog,
   DialogClose,
@@ -13,51 +14,47 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { siteAsset } from "@/lib/site-path";
+import type { SiteCopy } from "@/lib/i18n";
 
 type ChronovizorProps = {
   stage: number;
   soundEnabled: boolean;
 };
 
-const inscriptionLines = [
-  "ΑΓΑΘΑΙ ΤΥΧΑΙ ΕΦ ΙΕΡΟΜΝΑΜΟΝΟΣ ΠΡΑΞΙΔΑΜΟΥ",
-  "ΜΑΧΑΝΕΟΣ ΣΥΝΘΗΚΑ ΟΙΚΙΣΤΑΝ ΙΣΣΑΙΩΝ",
-  "ΚΑΙ ΠΥΛΛΟΥ ΚΑΙ ΤΟΥ ΥΟΥ ΔΑΖΟΥ ΤΑΔΕ",
-  "ΣΥΝΕΓΡΑΨΑΝ ΟΙ ΟΙΚΙΣΤΑΙ ΚΑΙ ΕΔΟΞΕ ΤΩΙ ΔΑΜΩΙ",
-  "ΛΑΒΕΙΝ ΕΞΑΙΡΕΤΟΝ ΤΟΥΣ ΠΡΩΤΟΥΣ",
-  "ΚΑΤΑΛΑΒΟΝΤΑΣ ΤΑΝ ΧΩΡΑΝ ΚΑΙ ΤΕΙΧΙΞΑΝΤΑΣ",
-  "ΤΑΝ ΠΟΛΙΝ ΤΑΣ ΠΟΛΙΟΣ ΟΙΚΟΠΕΔΟΝ ΕΝ ΕΚΑΣΤΟΝ",
-  "ΤΑΣ ΤΕΤΕΙΧΙΣΜΕΝΑΣ ΕΞΑΙΡΕΤΟΝ ΣΥΝ ΤΩΙ ΜΕΡΕΙ",
-] as const;
-
 const spokenDecreeAudio = siteAsset("/media/lumbarda-psephisma-talos.mp3");
 
-const croatianTranslation =
-  "Neka je sa srećom. Za hijeromnamona Praksidama [u mjesecu Mahaneju utvrđen je ugovor o osnivanju naseobine između] Isejaca te Pila i njegova sina Daza. Ovo [su osnivači naseobine ugovorili] i narod je odlučio: da oni koji su prvi [zauzeli zemlju] i obzidali grad dobiju posebno zemljište za gradnju kuće unutar utvrđenoga grada, zajedno s pripadajućim dijelom.";
+type ChronovizorCopy = SiteCopy["chronovizor"];
 
-function Inscription() {
+function Inscription({ copy }: { copy: ChronovizorCopy }) {
   return (
-    <div className="psephisma-inscription" lang="grc" aria-label="Početak natpisa Lumbardske psefizme">
-      {inscriptionLines.map((line) => (
+    <div className="psephisma-inscription" lang="grc" aria-label={copy.inscriptionAria}>
+      {copy.inscriptionLines.map((line) => (
         <span key={line}>{line}</span>
       ))}
     </div>
   );
 }
 
-function SteleSurface({ closeup = false }: { closeup?: boolean }) {
+function SteleSurface({
+  closeup = false,
+  copy,
+  locale,
+  pronunciationNote,
+}: {
+  closeup?: boolean;
+  copy: ChronovizorCopy;
+  locale: SiteCopy["locale"];
+  pronunciationNote: string;
+}) {
   return (
     <div className={closeup ? "psephisma-stone is-closeup" : "psephisma-stone"}>
-      <Inscription />
+      <Inscription copy={copy} />
       {closeup && (
-        <div className="psephisma-translation" lang="hr">
-          <span>HRVATSKI PRIJEVOD</span>
-          <p>{croatianTranslation}</p>
-          <small>Rekonstruirani dijelovi označeni su uglatim zagradama.</small>
-          <small>
-            Rekonstruirano čitanje dorskoga grčkog teksta. Izgovor je povijesno
-            utemeljena aproksimacija, ne doslovna rekonstrukcija lokalnog govora.
-          </small>
+        <div className="psephisma-translation" lang={locale}>
+          <span>{copy.translationLabel}</span>
+          <p>{copy.translation}</p>
+          <small>{copy.reconstructedPartsNote}</small>
+          <small>{pronunciationNote}</small>
         </div>
       )}
     </div>
@@ -65,6 +62,8 @@ function SteleSurface({ closeup = false }: { closeup?: boolean }) {
 }
 
 export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
+  const { copy } = useI18n();
+  const chronovizor = copy.chronovizor;
   const videoRef = useRef<HTMLVideoElement>(null);
   const decreeAudioRef = useRef<HTMLAudioElement>(null);
   const [ready, setReady] = useState(false);
@@ -134,7 +133,7 @@ export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
   return (
     <section
       className="chronovizor-stage"
-      aria-label="Pogled kroz kronovizor na grčku Lumbardu"
+      aria-label={chronovizor.stageAria}
       style={{
         backgroundImage: `url("${siteAsset("/media/lumbarda-chronovizor-poster.jpg")}")`,
       }}
@@ -151,7 +150,7 @@ export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
         playsInline
         disablePictureInPicture
         onCanPlay={() => setReady(true)}
-        aria-label="Realistična videorekonstrukcija grčke naseobine u Lumbardi"
+        aria-label={chronovizor.videoAria}
       />
       <audio ref={decreeAudioRef} src={spokenDecreeAudio} preload="auto" />
 
@@ -160,13 +159,13 @@ export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
       {!ready && !playBlocked && (
         <div className="chronovizor-loading" role="status">
           <span className="live-dot" aria-hidden="true" />
-          Učitavam kronovizor…
+          {chronovizor.loading}
         </div>
       )}
 
       {playBlocked && (
         <Button className="chronovizor-play" onClick={resumeVideo}>
-          <Play aria-hidden="true" /> Pokreni kronovizor
+          <Play aria-hidden="true" /> {chronovizor.play}
         </Button>
       )}
 
@@ -175,11 +174,15 @@ export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
           type="button"
           className="psephisma-hero"
           onClick={() => setSteleOpen(true)}
-          aria-label="Otvori uvećani, čitljivi natpis Lumbardske psefizme"
+          aria-label={chronovizor.openInscriptionAria}
           aria-haspopup="dialog"
         >
-          <SteleSurface />
-          <span className="psephisma-hero-action">Dodirni psefizmu · pročitaj natpis</span>
+          <SteleSurface
+            copy={chronovizor}
+            locale={copy.locale}
+            pronunciationNote={copy.pronunciationNote}
+          />
+          <span className="psephisma-hero-action">{chronovizor.inscriptionAction}</span>
         </button>
       )}
 
@@ -201,16 +204,19 @@ export function Chronovizor({ stage, soundEnabled }: ChronovizorProps) {
           }}
         >
           <DialogHeader className="sr-only">
-            <DialogTitle>Lumbardska psefizma</DialogTitle>
-            <DialogDescription>
-              Uvećani prikaz početka autentičnog grčkog natpisa.
-            </DialogDescription>
+            <DialogTitle>{chronovizor.dialogTitle}</DialogTitle>
+            <DialogDescription>{chronovizor.dialogDescription}</DialogDescription>
           </DialogHeader>
           <div className="psephisma-closeup">
-            <SteleSurface closeup />
+            <SteleSurface
+              closeup
+              copy={chronovizor}
+              locale={copy.locale}
+              pronunciationNote={copy.pronunciationNote}
+            />
             <DialogClose asChild>
               <Button className="psephisma-return">
-                <ArrowLeft aria-hidden="true" /> Povratak u kronovizor
+                <ArrowLeft aria-hidden="true" /> {chronovizor.returnToChronovizor}
               </Button>
             </DialogClose>
           </div>

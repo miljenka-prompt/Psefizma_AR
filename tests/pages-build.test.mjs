@@ -29,6 +29,31 @@ test("uses the repository path in the exported page", async () => {
   }
 });
 
+test("stages HR and EN on one URL without publishing an unreviewed translation", async () => {
+  const [types, index, provider, croatian, experience, chronovizor, diorama] =
+    await Promise.all([
+      readFile(new URL("../lib/i18n/types.ts", import.meta.url), "utf8"),
+      readFile(new URL("../lib/i18n/index.ts", import.meta.url), "utf8"),
+      readFile(new URL("../components/i18n-provider.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../lib/i18n/locales/hr.ts", import.meta.url), "utf8"),
+      readFile(new URL("../app/experience.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/chronovizor.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/diorama.tsx", import.meta.url), "utf8"),
+    ]);
+
+  assert.match(types, /SUPPORTED_LOCALES = \["hr", "en"\]/);
+  assert.match(index, /DEFAULT_LOCALE: Locale = "hr"/);
+  assert.match(index, /dictionaries[\s\S]*?= \{\s*hr,\s*\}/);
+  assert.doesNotMatch(index, /import\s+\{\s*en\s*\}/);
+  assert.match(provider, /new URLSearchParams\(window\.location\.search\)\.get\("lang"\)/);
+  assert.match(provider, /url\.searchParams\.set\("lang", nextLocale\)/);
+  assert.match(provider, /if \(locales\.length < 2\) return null/);
+  assert.match(croatian, /Rekonstruirano čitanje dorskoga grčkog teksta/);
+  assert.match(experience, /useI18n\(\)/);
+  assert.match(chronovizor, /copy\.chronovizor/);
+  assert.match(diorama, /copy\.diorama/);
+});
+
 test("stops ambient audio when AR or the page exits", async () => {
   const [experience, diorama] = await Promise.all([
     readFile(new URL("../app/experience.tsx", import.meta.url), "utf8"),

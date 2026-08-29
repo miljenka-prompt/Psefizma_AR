@@ -115,6 +115,42 @@ a {
   gap: 0.45rem;
 }
 
+.language-switcher {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 2.35rem;
+  border: 1px solid var(--border);
+  background: #111a18b3;
+}
+
+.language-switcher button {
+  min-width: 2.45rem;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: #c8c7b9;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.language-switcher button:last-child {
+  border-right: 0;
+}
+
+.language-switcher button.is-active {
+  background: #d6b676;
+  color: #15201d;
+}
+
+.language-switcher button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 .header-status {
   display: inline-flex;
   align-items: center;

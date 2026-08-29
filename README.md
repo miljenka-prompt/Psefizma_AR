@@ -34,6 +34,24 @@ Očekivana javna adresa je:
 
 <https://miljenka-prompt.github.io/Psefizma_AR/>
 
+## Jezična arhitektura
+
+Sav tekst koji vidi posjetitelj izdvojen je iz komponenti u centralne jezične
+rječnike. Hrvatska verzija nalazi se u `lib/i18n/locales/hr.ts`, a ugovor koji
+moraju zadovoljiti svi jezici definiran je u `lib/i18n/types.ts`.
+
+Hrvatski je zadani jezik i jedini trenutačno objavljeni rječnik. Zato javno
+sučelje i poveznica ostaju nepromijenjeni, bez nedovršenog jezičnog prekidača.
+Kada stručni pregled engleskog prijevoda bude završen:
+
+1. kopirajte strukturu `hr.ts` u `lib/i18n/locales/en.ts` i unesite pregledani tekst,
+2. uvezite `en` i registrirajte ga u objektu `dictionaries` u `lib/i18n/index.ts`.
+
+Time se automatski uključuje prekidač **HR | EN**. Obje verzije ostaju na istoj
+GitHub Pages adresi i koriste isti QR kod; engleska se verzija može izravno
+dijeliti dodatkom `?lang=en`. Odabir se pamti u pregledniku, dok osnovna adresa
+bez parametra i dalje otvara hrvatsku verziju.
+
 ## Medijski sadržaj
 
 - `public/media/lumbarda-chronovizor.mp4` – videorekonstrukcija
