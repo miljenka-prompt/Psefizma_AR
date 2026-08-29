@@ -54,6 +54,10 @@ function SteleSurface({ closeup = false }: { closeup?: boolean }) {
           <span>HRVATSKI PRIJEVOD</span>
           <p>{croatianTranslation}</p>
           <small>Rekonstruirani dijelovi označeni su uglatim zagradama.</small>
+          <small>
+            Rekonstruirano čitanje dorskoga grčkog teksta. Izgovor je povijesno
+            utemeljena aproksimacija, ne doslovna rekonstrukcija lokalnog govora.
+          </small>
         </div>
       )}
     </div>
