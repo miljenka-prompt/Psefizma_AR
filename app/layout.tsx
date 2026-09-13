@@ -26,6 +26,21 @@ export default function RootLayout({
     <html lang={DEFAULT_LOCALE}>
       <body>
         <I18nProvider>{children}</I18nProvider>
+        <footer
+          aria-label="Project credits"
+          style={{
+            padding: "14px 20px 20px",
+            textAlign: "center",
+            fontSize: "0.72rem",
+            lineHeight: 1.55,
+            opacity: 0.68,
+            letterSpacing: "0.02em",
+          }}
+        >
+          <strong>Concept, authorship &amp; creative direction:</strong> Miljenka Ćurković
+          <span aria-hidden="true"> · </span>
+          <strong>AI architecture &amp; development collaboration:</strong> ChatGPT — GPT-5.6 Sol (OpenAI)
+        </footer>
       </body>
     </html>
   );
